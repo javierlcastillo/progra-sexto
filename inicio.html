@@ -13,31 +13,7 @@
             margin: 0;
             font-family: Arial, sans-serif;
         }
-        .welcome-container {
-            background-color: #3970d7;
-            display: flex; 
-            justify-content: space-between;
-            align-items: center;
-            max-width: 100%; 
-            padding: 10px 20px; 
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            color: white; 
-            border-radius: 0; 
-        }
-        .welcome-container h1 {
-            margin: 0; 
-            font-size: 1.5em; 
-        }
-        .header-logo {
-            font-weight: bold; 
-            font-size: 1.2em; 
-        }
-        .welcome-container h2 {
-            font-size: 37px; 
-            text-align: center;
-            margin-bottom: 20px;
-            color: #333;
-        }
+        /* Dashboard styles */
         .dashboard-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); 
@@ -86,196 +62,13 @@
             color: #666; 
             font-size: 0.95em;
         }
-        .nav-button {
-            display: inline-block;
-            padding: 15px 30px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #004fa3;
-            border: none;
-            text-decoration: none;
-            transition: background-color 0.3s, transform 0.2s;
-        }
-        .nav-button:hover {
-            background-color: var(--color-primary-hover);
-            transform: translateY(-2px);
-        }
-
-        .nav-button:active {
-            transform: translateY(0);
-            background-color: var(--color-primary-active);
-        }
-        .sidebar {
-            position: fixed;
-            top: 0;
-            right: 0;
-            height: 100vh;
-            width: 250px;
-            background-color: #d4d4d4;
-            display: flex;
-            flex-direction: column;
-            align-items: start;
-            z-index: 1000;
-            transform: translateX(100%);
-            transition: transform 0.3s ease-in-out;
-        }
-
-        .sidebar.open {
-            transform: translateX(0);
-        }
-        .header-icons {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .notification-bell {
-            position: relative;
-            display: flex; 
-            align-items: center;
-        }
-        .notification-bell svg {
-            cursor: pointer;
-        }
-        .burger-menu {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            width: 2rem;
-            height: 2rem;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 0;
-            position: relative; /* Ensure z-index is applied */
-            z-index: 1001;
-        }
-        .burger-menu span {
-            width: 2rem;
-            height: 0.25rem;
-            background: #ffffff;
-            border-radius: 10px;
-            transition: all 0.3s linear;
-            position: relative;
-            transform-origin: 1px;
-            }       
-        /* Hamburger Animation */
-        .burger-menu.open span:first-child {
-        transform: rotate(45deg);
-        }
-
-        .burger-menu.open span:nth-child(2) {
-        opacity: 0;
-        }
-
-        .burger-menu.open span:nth-child(3) {
-        transform: rotate(-45deg);
-        }
-        .notifications {
-            display: none;
-        }
-        .notifications.opened {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%); /* Center the pop-up */
-            width: 80%;
-            max-width: 600px;
-            max-height: 70vh;
-            border-radius: 10px;
-            background-color: #f0f0f0; /* Lighter background */
-            z-index: 1002;
-            display: flex; /* Use flexbox for layout */
-            flex-direction: column;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-        }
-        .close-btn {
-            position: absolute;
-            top: 15px;
-            right: 20px;
-            width: 2rem;
-            height: 2rem;
-            background: transparent;
-            border: none;
-            cursor: pointer;
-        }
-        .close-btn span {
-            display: block;
-            width: 2rem;
-            height: 0.25rem;
-            background: #dc3545; /* Red color */
-            border-radius: 10px;
-            position: absolute;
-            top: 50%;
-            left: 0;
-        }
-        .close-btn span:first-child {
-            transform: rotate(45deg);
-        }
-        .close-btn span:last-child {
-            transform: rotate(-45deg);
-        }
-
-        .notifications h2 {
-            margin: 0 0 20px 0;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #ccc;
-            text-align: center;
-        }
-
-        .notifications ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            overflow-y: auto; /* Make list scrollable */
-            flex-grow: 1; /* Allow list to fill space */
-        }
-
-        .notifications li {
-            padding: 15px 10px;
-            border-bottom: 1px solid #ccc;
-            font-size: 0.95em;
-        }
-        .notifications li:last-child {
-            border-bottom: none; /* Remove border from last item */
-        }
     </style>
+    <script src="header.js" defer></script>
+    <script src="footer.js" defer></script>
 </head>
 <body>
-    <header class="welcome-container">
-        <h1>Bienvenido a {empresa}</h1>
-        <span class="header-logo">{logo}</span> 
-        <div class="header-icons">
-            <a href="#" id="notification-bell-btn" class="notification-bell">
-                <svg xmlns="http://www.w3.org/2000/svg" height="28px" viewBox="0 0 24 24" width="28px"><path d="M0 0h24v24H0V0z" fill="none"/><path fill="white" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.21 1.79-4 4-4s4 1.79 4 4v6z"/></svg>
-            </a>
-            <button class="burger-menu" id="burger-menu">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        </div>        
-    </header>
-    <nav class="sidebar" id="sidebar">
-        <a class="nav-button" id="inicio">Inicio</a>
-        <a class="nav-button" id="calendario">Calendario</a>
-        <a class="nav-button" id="perfil">Perfil</a>
-        <a  class="nav-button"id="log-out">Cerrar Sesion</a>
-        </nav>
-    
-    <div class="notifications">
-        <button id="close-notifications-btn" class="close-btn">
-            <span></span>
-            <span></span>
-        </button>
-        <h2>Notificaciones</h2>
-        <ul>
-            <li>Esto es un texto de prueba. Aqui se despliegaran mas alertas y notificaciones</li>
-            <li>Esto es un texto de prueba. Aqui se despliegaran mas alertas y notificaciones</li>
-            <li>Esto es un texto de prueba. Aqui se despliegaran mas alertas y notificaciones</li>
-            <li>Esto es un texto de prueba. Aqui se despliegaran mas alertas y notificaciones</li>
-        </ul>
-    </div>    
+    <app-header></app-header>
+
     <div class="dashboard-grid">
         <div class="dashboard-box stripe-red">
             <div class="color-stripe"></div>
@@ -311,43 +104,9 @@
         </div>
     </div>
 
+    <app-footer></app-footer>
+
     <script>
-        const burgerMenu = document.getElementById('burger-menu');
-        const sidebar = document.getElementById('sidebar');
-        const notificationBtn = document.getElementById('notification-bell-btn');
-        const notificationsPanel = document.querySelector('.notifications');
-        const closeNotificationsBtn = document.getElementById('close-notifications-btn');
-
-        burgerMenu.addEventListener('click', () => {
-            burgerMenu.classList.toggle('open');
-            sidebar.classList.toggle('open');
-        });
-
-        function toggleNotifications() {
-            notificationsPanel.classList.toggle('opened');
-        }
-
-        notificationBtn.addEventListener('click', (event) => {
-            event.preventDefault(); // Prevent page refresh from <a> tag
-            toggleNotifications();
-        });
-
-        closeNotificationsBtn.addEventListener('click', () => {
-            toggleNotifications();
-        });
-
-        // This listener handles all nav buttons, including log-out
-        Array.from(document.getElementsByClassName('nav-button')).forEach(button => {
-            button.addEventListener('click', function(event) {
-                const pageId = event.currentTarget.id;
-                
-                if (pageId === 'log-out') {
-                    window.location.href = 'login.html';
-                } else if (pageId) {
-                    window.location.href = pageId + '.html';
-                }
-            });
-        });
     </script>
 </body>
 </html>
