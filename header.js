@@ -251,6 +251,7 @@ class Header extends HTMLElement {
                 const pageId = event.currentTarget.id;
                 
                 if (pageId === 'log-out') {
+                    sessionStorage.removeItem('token');
                     window.location.href = 'login.html';
                 } else if (pageId) {
                     window.location.href = pageId + '.html';

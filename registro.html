@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="utils.js"></script>
+    <script src="auth-utils.js"></script>
     <title>Registro</title>
     <style>
         body {
@@ -95,6 +97,11 @@
                 <input type="email" id="email" name="email" placeholder="ejemplo@correo.com" required>
             </div>
             <div class="form-group">
+                <label for="username">Usuario</label>
+                <input type="username" id="username" name="username" placeholder="usuario123" required>
+            </div>
+            
+            <div class="form-group">
                 <label for="password">Contraseña</label>
                 <input type="password" id="password" name="password" placeholder="••••••••" required>
             </div>
@@ -117,6 +124,7 @@
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
+            const username = document.getElementById('username').value;
 
             if (password !== confirmPassword) {
                 console.error('Error: Las contraseñas no coinciden');
@@ -124,38 +132,14 @@
                 return;
             }
 
-            // Comentamos para no tener esto actualmente funcional
-            const header = {
-                "alg": "HS256",
-                "typ": "JWT"
-            };
-
-            const payload = {
-                "sub": email,       
-                "name": nombre,
-                "pwd": password,
-                "iat": Math.floor(Date.now() / 1000) // issued at
-
-            };
-
-            function base64UrlEncode(obj) {
-                const stringified = JSON.stringify(obj);
-                const base64 = btoa(stringified);
-                return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-            }
-
-            const encodedHeader = base64UrlEncode(header);
-            const encodedPayload = base64UrlEncode(payload);
-
-            const signature = "firma_secreta_simulada_xyz123";
-
-            const jwt = `${encodedHeader}.${encodedPayload}.${signature}`;
-
+            // Usamos la funcion global importada de auth-utils.js
+            const jwt = createToken(username);
+            
             console.log("%cRegistro Exitoso", "color: green; font-weight: bold; font-size: 14px;");
             console.log("Datos Ingresados:", { nombre, email, password });
-            //console.log("%cJWT Generado:", "color: blue; font-weight: bold;", jwt);
             
-            alert('Registro simulado exitoso. Revisa la consola para ver el JWT.');
+            sessionStorage.setItem('token', jwt);
+            window.location.href = 'inicio.html';
         });
     </script>
 </body>
