@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PokeAPI</title>
+    <script src="auth.js"></script>
+    <style>
+        body {
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; 
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+        /* Esto asegura que el contenido crezca y empuje el footer al fondo */
+        poke-cards {
+            flex-grow: 1;
+            display: block;
+        }
+    </style>
+    <script src="header.js" defer></script>
+    <script src="footer.js" defer></script>
+    <script src="poke-component.js" defer></script>
+</head>
+<body>
+    <app-header></app-header>
+
+    <!-- Nuestro componente web personalizado -->
+    <poke-cards></poke-cards>
+
+    <app-footer></app-footer>
+</body>
+</html>
