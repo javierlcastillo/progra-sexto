@@ -1,7 +1,54 @@
 class PokeCards extends HTMLElement {
+    constructor() {
+        super();
+        this.offset = 0;
+        this.limit = 100;
+        this.currentType = 'all';
+        this.allTypeResults = []; // Guardar lista completa cuando se filtra por tipo
+    }
+
     async connectedCallback() {
+        this.renderSkeleton();
+        await this.loadTypes();
+        await this.fetchPokemons();
+    }
+
+    renderSkeleton() {
         this.innerHTML = `
             <style>
+                .controls {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 15px;
+                    margin-bottom: 20px;
+                }
+                .filter-section select {
+                    padding: 8px 15px;
+                    border-radius: 5px;
+                    border: 1px solid #ccc;
+                    text-transform: capitalize;
+                }
+                .pagination-section {
+                    display: flex;
+                    gap: 10px;
+                }
+                .btn-pagination {
+                    padding: 8px 20px;
+                    background-color: #3970d7;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    transition: background 0.3s;
+                }
+                .btn-pagination:disabled {
+                    background-color: #ccc;
+                    cursor: not-allowed;
+                }
+                .btn-pagination:hover:not(:disabled) {
+                    background-color: #2a52a3;
+                }
                 .poke-container {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -9,85 +56,147 @@ class PokeCards extends HTMLElement {
                     padding: 20px;
                     width: 100%;
                     max-width: 1200px;
-                    margin: 20px auto;
-                    flex-grow: 1;
+                    margin: 0 auto;
                 }
                 .poke-card {
                     background-color: #ffffff;
                     border-radius: 8px;
                     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-                    transition: transform 0.2s ease-in-out;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
+                    text-align: center;
                     padding: 20px;
                     text-transform: capitalize;
                 }
-                .poke-card:hover {
-                    transform: translateY(-5px);
-                }
-                .poke-card img {
-                    width: 120px;
-                    height: 120px;
-                    object-fit: contain;
-                }
-                .poke-card h3 {
-                    margin: 10px 0 5px;
-                    color: #3970d7;
-                }
-                .poke-card p {
-                    color: #666;
-                    margin: 5px 0;
-                    font-size: 0.9em;
-                }
-                .loading {
-                    text-align: center;
-                    padding: 50px;
-                    font-size: 1.2em;
-                    color: #666;
-                    flex-grow: 1;
-                }
-                .title-section {
-                    text-align: center;
-                    padding-top: 20px;
-                    color: #333;
-                }
+                .poke-card img { width: 120px; height: 120px; object-fit: contain; }
+                .loading { text-align: center; padding: 50px; font-size: 1.2em; color: #666; }
+                .title-section { text-align: center; padding: 20px 0; color: #333; }
             </style>
-            <h2 class="title-section">Tus 5 Pokémon</h2>
-            <div class="loading">Obteniendo datos de PokeAPI...</div>
+            
+            <h2 class="title-section">Pokédex Pro</h2>
+            
+            <div class="controls">
+                <div class="filter-section">
+                    <label for="type-filter">Tipo: </label>
+                    <select id="type-filter">
+                        <option value="all">Todos</option>
+                    </select>
+                </div>
+                
+                <div class="pagination-section">
+                    <button id="prev-btn" class="btn-pagination" disabled>Anterior</button>
+                    <span id="page-info" style="align-self: center; font-weight: bold;">Cargando...</span>
+                    <button id="next-btn" class="btn-pagination">Siguiente</button>
+                </div>
+            </div>
+
+            <div id="loading" class="loading">Buscando en la hierba alta...</div>
+            <div id="container" class="poke-container"></div>
         `;
 
+        // Eventos
+        this.querySelector('#type-filter').addEventListener('change', (e) => {
+            this.currentType = e.target.value;
+            this.offset = 0; // Reiniciar Paginacion cada que se cmabia de tipo
+            this.fetchPokemons();
+        });
+
+        this.querySelector('#prev-btn').addEventListener('click', () => {
+            if (this.offset >= this.limit) {
+                this.offset -= this.limit;
+                this.fetchPokemons();
+            }
+        });
+
+        this.querySelector('#next-btn').addEventListener('click', () => {
+            this.offset += this.limit;
+            this.fetchPokemons();
+        });
+    }
+
+    async loadTypes() {
         try {
-            const response = await fetch('https://pokeapi.co/api/v2/pokemon?limit=5');
-            const data = await response.json();
-            
-            const pokemonPromises = data.results.map(async (poke) => {
-                const res = await fetch(poke.url);
+            const res = await fetch('https://pokeapi.co/api/v2/type');
+            const data = await res.json();
+            const select = this.querySelector('#type-filter');
+            data.results.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.name;
+                option.textContent = type.name;
+                select.appendChild(option);
+            });
+        } catch (error) { console.error('Error tipos:', error); }
+    }
+
+    async fetchPokemons() {
+        const container = this.querySelector('#container');
+        const loading = this.querySelector('#loading');
+        const pageInfo = this.querySelector('#page-info');
+        
+        container.innerHTML = '';
+        loading.style.display = 'block';
+        this.updateButtons(true); // Bloquear botones mientras carga
+
+        try {
+            let pokemonList = [];
+            let total = 0;
+
+            if (this.currentType === 'all') {
+                const res = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=${this.limit}&offset=${this.offset}`);
+                const data = await res.json();
+                pokemonList = data.results;
+                total = data.count;
+            } else {
+                // Si el tipo cambió o es la primera vez filtrando por este tipo
+                if (this.offset === 0) {
+                    const res = await fetch(`https://pokeapi.co/api/v2/type/${this.currentType}`);
+                    const data = await res.json();
+                    this.allTypeResults = data.pokemon.map(p => p.pokemon);
+                }
+                total = this.allTypeResults.length;
+                pokemonList = this.allTypeResults.slice(this.offset, this.offset + this.limit);
+            }
+
+            const pokemonPromises = pokemonList.map(async (p) => {
+                const res = await fetch(p.url);
                 return res.json();
             });
-            
+
             const pokemons = await Promise.all(pokemonPromises);
             this.renderCards(pokemons);
             
+            loading.style.display = 'none';
+            pageInfo.textContent = `${this.offset + 1} - ${Math.min(this.offset + this.limit, total)} de ${total}`;
+            this.updateButtons(false, total);
+
         } catch (error) {
-            this.innerHTML = `<div class="loading" style="color: red;">Error al conectar con la PokeAPI.</div>`;
-            console.error('Error fetching PokeApi:', error);
+            loading.innerHTML = `<span style="color: red;">Error de conexión.</span>`;
+            console.error(error);
+        }
+    }
+
+    updateButtons(isLoading, total = 0) {
+        const prevBtn = this.querySelector('#prev-btn');
+        const nextBtn = this.querySelector('#next-btn');
+
+        if (isLoading) {
+            prevBtn.disabled = true;
+            nextBtn.disabled = true;
+        } else {
+            prevBtn.disabled = this.offset === 0;
+            nextBtn.disabled = (this.offset + this.limit) >= total;
         }
     }
 
     renderCards(pokemons) {
-        const cardsHTML = pokemons.map(pokemon => `
+        const container = this.querySelector('#container');
+        container.innerHTML = pokemons.map(pokemon => `
             <div class="poke-card">
-                <img src="${pokemon.sprites.front_default}" alt="${pokemon.name}">
+                <img src="${pokemon.sprites.front_default || 'https://via.placeholder.com/120?text=?'}" alt="${pokemon.name}">
                 <h3>${pokemon.name}</h3>
                 <p><strong>Tipo:</strong> ${pokemon.types.map(t => t.type.name).join(', ')}</p>
                 <p><strong>Peso:</strong> ${pokemon.weight / 10} kg</p>
                 <p><strong>Altura:</strong> ${pokemon.height / 10} m</p>
             </div>
         `).join('');
-
-        this.innerHTML += `<div class="poke-container">${cardsHTML}</div>`;
-        this.querySelector('.loading').remove();
     }
 }
 
