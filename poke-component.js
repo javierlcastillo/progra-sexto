@@ -4,7 +4,7 @@ class PokeCards extends HTMLElement {
         this.offset = 0;
         this.limit = 100;
         this.currentType = 'all';
-        this.allTypeResults = []; // Guardar lista completa cuando se filtra por tipo
+        this.allTypeResults = []; 
     }
 
     async connectedCallback() {
@@ -22,6 +22,19 @@ class PokeCards extends HTMLElement {
                     align-items: center;
                     gap: 15px;
                     margin-bottom: 20px;
+                }
+                .search-section {
+                    display: flex;
+                    gap: 10px;
+                    width: 100%;
+                    max-width: 400px;
+                }
+                .search-section input {
+                    flex-grow: 1;
+                    padding: 10px;
+                    border-radius: 5px;
+                    border: 1px solid #ccc;
+                    font-size: 1rem;
                 }
                 .filter-section select {
                     padding: 8px 15px;
@@ -66,14 +79,26 @@ class PokeCards extends HTMLElement {
                     padding: 20px;
                     text-transform: capitalize;
                 }
-                .poke-card img { width: 120px; height: 120px; object-fit: contain; }
-                .loading { text-align: center; padding: 50px; font-size: 1.2em; color: #666; }
-                .title-section { text-align: center; padding: 20px 0; color: #333; }
+                .poke-card img { 
+                    width: 120px; height: 120px; object-fit: contain; 
+                }
+                .loading { 
+                    text-align: center; padding: 50px; font-size: 1.2em; color: #666; 
+                }
+                .title-section { 
+                    text-align: center; padding: 20px 0; color: #333; 
+                }
             </style>
             
             <h2 class="title-section">Pokédex Pro</h2>
             
             <div class="controls">
+                <!-- Barra de Búsqueda -->
+                <div class="search-section">
+                    <input type="text" id="search-input" placeholder="Buscar por nombre o ID...">
+                    <button id="search-btn" class="btn-pagination">Buscar</button>
+                </div>
+
                 <div class="filter-section">
                     <label for="type-filter">Tipo: </label>
                     <select id="type-filter">
@@ -81,7 +106,7 @@ class PokeCards extends HTMLElement {
                     </select>
                 </div>
                 
-                <div class="pagination-section">
+                <div class="pagination-section" id="pagination-controls">
                     <button id="prev-btn" class="btn-pagination" disabled>Anterior</button>
                     <span id="page-info" style="align-self: center; font-weight: bold;">Cargando...</span>
                     <button id="next-btn" class="btn-pagination">Siguiente</button>
@@ -92,10 +117,10 @@ class PokeCards extends HTMLElement {
             <div id="container" class="poke-container"></div>
         `;
 
-        // Eventos
         this.querySelector('#type-filter').addEventListener('change', (e) => {
             this.currentType = e.target.value;
-            this.offset = 0; // Reiniciar Paginacion cada que se cmabia de tipo
+            this.offset = 0;
+            this.querySelector('#search-input').value = '';
             this.fetchPokemons();
         });
 
@@ -110,6 +135,42 @@ class PokeCards extends HTMLElement {
             this.offset += this.limit;
             this.fetchPokemons();
         });
+
+        const searchInput = this.querySelector('#search-input');
+        const searchBtn = this.querySelector('#search-btn');
+
+        searchBtn.addEventListener('click', () => this.handleSearch());
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.handleSearch();
+        });
+    }
+
+    async handleSearch() {
+        const query = this.querySelector('#search-input').value.trim().toLowerCase();
+        const container = this.querySelector('#container');
+        const loading = this.querySelector('#loading');
+        const pagination = this.querySelector('#pagination-controls');
+
+        if (!query) {
+            this.fetchPokemons();
+        }
+
+        container.innerHTML = '';
+        loading.style.display = 'block';
+        loading.innerHTML = 'Buscando espécimen...';
+        pagination.style.display = 'none';
+
+        try {
+            const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${query}`);
+            if (!res.ok) throw new Error('No encontrado');
+            
+            const pokemon = await res.json();
+            this.renderCards([pokemon]);
+            loading.style.display = 'none';
+        } catch (error) {
+            loading.innerHTML = `<span style="color: red;">Pokémon "${query}" no encontrado.</span>`;
+            console.error('Error de búsqueda:', error);
+        }
     }
 
     async loadTypes() {
@@ -130,10 +191,13 @@ class PokeCards extends HTMLElement {
         const container = this.querySelector('#container');
         const loading = this.querySelector('#loading');
         const pageInfo = this.querySelector('#page-info');
+        const pagination = this.querySelector('#pagination-controls');
         
         container.innerHTML = '';
         loading.style.display = 'block';
-        this.updateButtons(true); // Bloquear botones mientras carga
+        loading.innerHTML = 'Buscando en la hierba alta...';
+        pagination.style.display = 'flex';
+        this.updateButtons(true);
 
         try {
             let pokemonList = [];
@@ -145,7 +209,6 @@ class PokeCards extends HTMLElement {
                 pokemonList = data.results;
                 total = data.count;
             } else {
-                // Si el tipo cambió o es la primera vez filtrando por este tipo
                 if (this.offset === 0) {
                     const res = await fetch(`https://pokeapi.co/api/v2/type/${this.currentType}`);
                     const data = await res.json();
@@ -176,7 +239,6 @@ class PokeCards extends HTMLElement {
     updateButtons(isLoading, total = 0) {
         const prevBtn = this.querySelector('#prev-btn');
         const nextBtn = this.querySelector('#next-btn');
-
         if (isLoading) {
             prevBtn.disabled = true;
             nextBtn.disabled = true;
