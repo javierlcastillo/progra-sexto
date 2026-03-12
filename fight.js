@@ -5,7 +5,7 @@ class PokeFight extends HTMLElement {
         this.pokemonData = [];
         this.logs = [];
         this.currentTurn = 0;
-        this.maxTurns = 6;
+        this.maxTurns = 18;
     }
     
     async connectedCallback(){
@@ -119,7 +119,6 @@ class PokeFight extends HTMLElement {
             bottom: 25vh;
             transition: all 0.8s ease;
 
-            /* Borde pixelado principal */
             box-shadow:
                 0 -8px 0 0 black,
                 0 8px 0 0 black,
@@ -127,7 +126,6 @@ class PokeFight extends HTMLElement {
                 8px 0 0 0 black;
         }
 
-        /* Esquinas dentadas para el efecto retro */
         #outside-textbox::after {
             content: "";
             position: absolute;
@@ -151,7 +149,6 @@ class PokeFight extends HTMLElement {
             box-sizing: border-box;
             transition: all 0.8s ease;
 
-            /* Borde pixelado principal */
             box-shadow:
                 0 -4px 0 0 white,
                 0 4px 0 0 white,
@@ -190,7 +187,6 @@ class PokeFight extends HTMLElement {
             width: 100%;
         }
 
-        /* ANIMACIONES */
         body.battle-active #foto-pelea {
             height: 60vh;
         }
@@ -211,7 +207,7 @@ class PokeFight extends HTMLElement {
             <div class="fighter" id="fighter-two"></div>
             <div class="container" id="outside-textbox">
                 <div class="container" id="inside-textbox">
-                    <div id="text-content">¡Un POKÉMON salvaje apareció!</div>
+                    <div id="text-content">¡Selecciona tu Pokémon!</div>
                     <div id="action-container"></div>
                 </div>
             </div>
@@ -240,6 +236,9 @@ class PokeFight extends HTMLElement {
         try {
             const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
             const data = await res.json();
+            const hpBase = data.stats.find(s => s.stat.name === 'hp').base_stat;
+            data.maxHp = hpBase;
+            data.currentHp = hpBase;
             this.pokemonData.push(data);
             document.body.classList.add('battle-active');
             this.renderFighter(data);
@@ -262,12 +261,11 @@ class PokeFight extends HTMLElement {
         } else if (this.fighters === 1){
             fighterSpot = this.querySelector('#fighter-two');
         } else {
-            // Reiniciar para nueva pelea si se selecciona un tercero
             this.fighters = 0;
             return this.renderFighter(pokemonData);
         }
 
-        const hp = pokemonData.stats.find(s => s.stat.name === 'hp').base_stat;
+        const hp = pokemonData.maxHp;
         const sprite = pokemonData.sprites.front_default;
 
         fighterSpot.innerHTML = `
@@ -279,7 +277,7 @@ class PokeFight extends HTMLElement {
                 <div class="hp-bar-container">
                     <div class="hp-bar-fill" id="hp-bar-${this.fighters}" style="width: 100%; transition: width 0.5s ease;"></div>
                 </div>
-                <div style="text-align: right; font-size: 0.7rem; margin-top: 2px;">
+                <div id="hp-text-${this.fighters}" style="text-align: right; font-size: 0.7rem; margin-top: 2px;">
                     ${hp}/${hp} HP
                 </div>
             </div>
@@ -311,24 +309,43 @@ class PokeFight extends HTMLElement {
     }
 
     processTurn() {
-        const attacker = this.currentTurn % 2 !== 0 ? this.pokemonData[0] : this.pokemonData[1];
-        const defenderIdx = this.currentTurn % 2 !== 0 ? 1 : 0;
+        const attackerIdx = this.currentTurn % 2 !== 0 ? 0 : 1;
+        const defenderIdx = attackerIdx === 0 ? 1 : 0;
+        const attacker = this.pokemonData[attackerIdx];
+        const defender = this.pokemonData[defenderIdx];
         
-        // Obtener un movimiento aleatorio de los datos reales del Pokémon
         const moveIndex = Math.floor(Math.random() * attacker.moves.length);
         const moveName = attacker.moves[moveIndex].move.name.replace(/-/g, ' ').toUpperCase();
         
-        const damage = Math.floor(Math.random() * 20) + 10;
-        const logEntry = `Turno ${this.currentTurn}: ¡${attacker.name.toUpperCase()} usó ${moveName}! Quita ${damage} HP.`;
+        let damage = Math.floor(Math.random() * 8) + 5;
+        let specialEffect = "";
+
+        if (this.currentTurn % 3 === 0) {
+            const isAttack = Math.random() > 0.5;
+            if (isAttack) {
+                damage = Math.floor(damage * 2.5);
+                specialEffect = "¡ATAQUE ESPECIAL! ";
+            } else {
+                damage = 2;
+                specialEffect = "¡DEFENSA ESPECIAL! ";
+            }
+        }
+
+        defender.currentHp = Math.max(0, defender.currentHp - damage);
+        
+        const logEntry = `Turno ${this.currentTurn}: ${specialEffect}¡${attacker.name.toUpperCase()} usó ${moveName}! Quita ${damage} HP.`;
         this.logs.push(logEntry);
         
         this.querySelector('#text-content').innerHTML = logEntry;
         
         const hpFill = this.querySelector(`#hp-bar-${defenderIdx}`);
-        const currentWidth = parseInt(hpFill.style.width);
-        hpFill.style.width = Math.max(0, currentWidth - 15) + "%";
+        const hpPercent = (defender.currentHp / defender.maxHp) * 100;
+        hpFill.style.width = hpPercent + "%";
 
-        if (this.currentTurn < this.maxTurns) {
+        const hpText = this.querySelector(`#hp-text-${defenderIdx}`);
+        hpText.innerHTML = `${defender.currentHp}/${defender.maxHp} HP`;
+
+        if (this.currentTurn < this.maxTurns && defender.currentHp > 0) {
             this.showActionButton("SIGUIENTE", () => {
                 this.currentTurn++;
                 this.processTurn();
@@ -339,9 +356,21 @@ class PokeFight extends HTMLElement {
     }
 
     showSummary() {
+        const p1 = this.pokemonData[0];
+        const p2 = this.pokemonData[1];
+        let winnerText = "";
+
+        if (p1.currentHp > p2.currentHp) {
+            winnerText = `¡EL GANADOR ES ${p1.name.toUpperCase()}!`;
+        } else if (p2.currentHp > p1.currentHp) {
+            winnerText = `¡EL GANADOR ES ${p2.name.toUpperCase()}!`;
+        } else {
+            winnerText = "¡ES UN EMPATE!";
+        }
+
         const textContent = this.querySelector('#text-content');
         this.querySelector('#action-container').innerHTML = "";
-        let summary = `<div class="summary-list"><strong>RESUMEN:</strong><br>`;
+        let summary = `<div class="summary-list"><strong>${winnerText}</strong><br><br><strong>RESUMEN:</strong><br>`;
         this.logs.forEach(log => summary += `• ${log}<br>`);
         summary += `</div>`;
         textContent.innerHTML = summary;
