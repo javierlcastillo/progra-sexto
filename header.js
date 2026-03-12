@@ -193,6 +193,7 @@ class Header extends HTMLElement {
             <a class="nav-button" id="calendario">Calendario</a>
             <a class="nav-button" id="perfil">Perfil</a>
             <a class="nav-button" id="PokeApi">PokeApi</a>
+            <a class="nav-button" id="fight">Pelear</a>
             <a  class="nav-button" id="log-out">Cerrar Sesion</a>
         </nav>
 
