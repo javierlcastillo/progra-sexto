@@ -2,6 +2,10 @@ class PokeFight extends HTMLElement {
     constructor() {
         super();
         this.fighters = 0;
+        this.pokemonData = [];
+        this.logs = [];
+        this.currentTurn = 0;
+        this.maxTurns = 6;
     }
     
     async connectedCallback(){
@@ -168,6 +172,24 @@ class PokeFight extends HTMLElement {
             transition: transform 0.8s ease, opacity 0.8s ease;
         }
 
+        .btn-pixel {
+            background: #e0e0e0;
+            border: 4px solid #000;
+            padding: 5px 10px;
+            font-family: inherit;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-left: 20px;
+        }
+
+        .summary-list {
+            font-size: 0.8rem;
+            max-height: 100px;
+            overflow-y: auto;
+            width: 100%;
+        }
+
         /* ANIMACIONES */
         body.battle-active #foto-pelea {
             height: 60vh;
@@ -189,7 +211,8 @@ class PokeFight extends HTMLElement {
             <div class="fighter" id="fighter-two"></div>
             <div class="container" id="outside-textbox">
                 <div class="container" id="inside-textbox">
-                    ¡Un POKÉMON salvaje apareció!
+                    <div id="text-content">¡Un POKÉMON salvaje apareció!</div>
+                    <div id="action-container"></div>
                 </div>
             </div>
         </div>
@@ -213,13 +236,17 @@ class PokeFight extends HTMLElement {
     }
 
     async handleSelection(pokemonId){
+        if (this.fighters >= 2) return;
         try {
             const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonId}`);
             const data = await res.json();
-            
+            this.pokemonData.push(data);
             document.body.classList.add('battle-active');
-            
             this.renderFighter(data);
+            
+            if (this.fighters === 2) {
+                this.showActionButton("INICIAR PELEA", () => this.startBattle());
+            }
         } catch (error) {
             console.error("Error al cargar Pokémon:", error);
         }
@@ -250,7 +277,7 @@ class PokeFight extends HTMLElement {
                     <span>Lv50</span>
                 </div>
                 <div class="hp-bar-container">
-                    <div class="hp-bar-fill"></div>
+                    <div class="hp-bar-fill" id="hp-bar-${this.fighters}" style="width: 100%; transition: width 0.5s ease;"></div>
                 </div>
                 <div style="text-align: right; font-size: 0.7rem; margin-top: 2px;">
                     ${hp}/${hp} HP
@@ -261,14 +288,64 @@ class PokeFight extends HTMLElement {
 
         setTimeout(() => fighterSpot.classList.add('active'), 50);
 
-        const textbox = this.querySelector('#inside-textbox');
+        const textContent = this.querySelector('#text-content');
         if (this.fighters === 0) {
-            textbox.innerHTML = `¡Adelante, ${pokemonData.name.toUpperCase()}!`;
+            textContent.innerHTML = `¡Adelante, ${pokemonData.name.toUpperCase()}!`;
         } else {
-            textbox.innerHTML = `¡${pokemonData.name.toUpperCase()} salvaje apareció!`;
+            textContent.innerHTML = `¡${pokemonData.name.toUpperCase()} salvaje apareció!`;
         }
 
         this.fighters++;
+    }
+
+    showActionButton(label, callback) {
+        const container = this.querySelector('#action-container');
+        container.innerHTML = `<button class="btn-pixel">${label}</button>`;
+        container.querySelector('button').onclick = callback;
+    }
+
+    startBattle() {
+        this.currentTurn = 1;
+        this.logs = [];
+        this.processTurn();
+    }
+
+    processTurn() {
+        const attacker = this.currentTurn % 2 !== 0 ? this.pokemonData[0] : this.pokemonData[1];
+        const defenderIdx = this.currentTurn % 2 !== 0 ? 1 : 0;
+        
+        // Obtener un movimiento aleatorio de los datos reales del Pokémon
+        const moveIndex = Math.floor(Math.random() * attacker.moves.length);
+        const moveName = attacker.moves[moveIndex].move.name.replace(/-/g, ' ').toUpperCase();
+        
+        const damage = Math.floor(Math.random() * 20) + 10;
+        const logEntry = `Turno ${this.currentTurn}: ¡${attacker.name.toUpperCase()} usó ${moveName}! Quita ${damage} HP.`;
+        this.logs.push(logEntry);
+        
+        this.querySelector('#text-content').innerHTML = logEntry;
+        
+        const hpFill = this.querySelector(`#hp-bar-${defenderIdx}`);
+        const currentWidth = parseInt(hpFill.style.width);
+        hpFill.style.width = Math.max(0, currentWidth - 15) + "%";
+
+        if (this.currentTurn < this.maxTurns) {
+            this.showActionButton("SIGUIENTE", () => {
+                this.currentTurn++;
+                this.processTurn();
+            });
+        } else {
+            this.showActionButton("RESUMEN", () => this.showSummary());
+        }
+    }
+
+    showSummary() {
+        const textContent = this.querySelector('#text-content');
+        this.querySelector('#action-container').innerHTML = "";
+        let summary = `<div class="summary-list"><strong>RESUMEN:</strong><br>`;
+        this.logs.forEach(log => summary += `• ${log}<br>`);
+        summary += `</div>`;
+        textContent.innerHTML = summary;
+        this.showActionButton("REINICIAR", () => location.reload());
     }
 }
 
